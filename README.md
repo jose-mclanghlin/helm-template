@@ -1,6 +1,6 @@
 # Helm Template Platform
 
-A reusable Helm template for standardized Kubernetes deployments with External Secrets Operator integration.
+A reusable Helm template for standardized Kubernetes deployments with flexible secret management: External Secrets Operator integration and conventional Kubernetes secrets support.
 
 ## 🏗️ Structure
 
@@ -42,13 +42,15 @@ The base chart includes:
 - **Deployment** with security contexts
 - **Service** and **Ingress** 
 - **ConfigMap** for configuration
-- **External Secrets** for AWS Secrets Manager
+- **Flexible Secret Management**:
+  - **External Secrets** for AWS Secrets Manager integration
+  - **Conventional Secrets** for standard Kubernetes secrets
 - **HPA/VPA** for auto-scaling
 - **PDB** for high availability
 
 ## 📝 Configuration
 
-Minimal `dev.yaml` example:
+Minimal `dev.yaml` example with External Secrets:
 
 ```yaml
 chart-deploy-base:
@@ -68,11 +70,18 @@ chart-deploy-base:
     port: 80
     targetPort: 8080
   
+  # Option 1: External Secrets (AWS Secrets Manager)
   externalSecret:
     enabled: true
     data:
       - secretKey: "API_KEY"
         remoteKey: "my-app/api-key"
+  
+  # Option 2: Conventional Kubernetes Secret
+  secret:
+    enabled: false # true for enabled
+    data:
+      API_KEY: "your-api-key-value"
 ```
 
 - **Helm 3.12+** installed
