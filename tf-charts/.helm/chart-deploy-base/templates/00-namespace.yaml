@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.namespace.name }}
+  labels:
+    name: {{ .Values.namespace.name }}
+    owner: {{ .Values.namespace.labels.owner }}
+    team: {{ .Values.namespace.labels.team }}
+    {{- if .Values.namespace.istioInjection }}
+    istio-injection: enabled
+    {{- end }}
+  {{- if .Values.namespace.goldilocksEnabled }}
+  annotations:
+    goldilocks.fairwinds.com/enabled: "true"
+  {{- end }}

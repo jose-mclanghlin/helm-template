@@ -1,0 +1,68 @@
+Documentation:
+// See more: https://medium.com/nontechcompany/how-i-create-my-first-library-helm-chart-4f23caf5287d
+// See more: https://github.com/InsomniaCoder/helm-library
+// See more: https://blog.devops.dev/from-hidden-to-hero-embracing-helms-secret-weapon-go-templates-4e6227f8aae3
+// See more: https://medium.com/schmiedeone/abstracting-kubernetes-with-helm-library-chart-4da85c3be8f5
+// see more: https://medium.com/@magelan09/helm-how-to-create-reusable-modules-from-helm-templates-my-mom-said-that-i-am-a-platform-engineer-9bd8b294ff62
+// See more: https://blog.stderr.at/gitopscollection/2025-07-17-common-template-application/
+// See more: https://github.com/InsomniaCoder/helm-library
+// See more: https://medium.com/@muppedaanvesh/a-hands-on-guide-to-kubernetes-horizontal-vertical-pod-autoscalers-%EF%B8%8F-58903382ef71
+// See more: https://medium.com/@muppedaanvesh/a-hands-on-guide-to-kubernetes-external-secrets-operator-%EF%B8%8F-6e630c2da25e
+// See more: https://medium.com/@lilnya79/set-up-minikube-monitoring-with-prometheus-and-grafana-setup-horizontal-pod-autoscaler-hpa-5c1964cd21de
+// See more: https://medium.com/@danieltse/pull-the-docker-image-from-aws-ecr-in-kubernetes-dc7280d74904
+// See more: https://dev.to/aws-builders/fetch-aws-secrets-in-your-kubernetes-realm-np3
+
+Steps:
+1- helm dependency update
+2- helm show values charts/chart-deploy-base-0.0.1.tgz
+3- tar -tzf charts/chart-deploy-base-0.0.1.tgz
+4- helm template my-new-app-00 . -f dev.yaml --debug
+5- helm upgrade --install my-new-app-00 . -n my-new-app-00 -f dev.yaml --create-namespace
+6- helm uninstall my-new-app-00 -n my-new-app-00
+
+Good Practices:
+1- Service Account with IAM Roles for Service Accounts (IRSA) instead of SecretStore to access AWS Secrets Manager
+2- https://medium.com/@muppedaanvesh/a-hands-on-guide-to-aws-eks-iam-roles-for-service-accounts-irsa-%EF%B8%8F-558c7a3e7c69
+3- https://medium.com/@andriikrymus/external-secrets-operator-with-aws-ssm-parameter-store-712572229f74
+
+Implementations:
+1- Confirm that your cluster has OIDC enabled
+        : eksctl utils associate-iam-oidc-provider --region us-east-2 --cluster example-cluster --approve
+2- Create a policy with permissions to read secrets 
+        : (secretsmanager-readonly-policy.json)
+    2.1- Create the file and save it
+        : aws iam create-policy \
+          --policy-name eks-secretsmanager-readonly \
+          --policy-document file://secretsmanager-readonly-policy.json
+3- Create the IAM Role for the SA (IRSA)
+    3.1- Get the cluster OIDC
+       - aws eks describe-cluster \
+         --name my-cluster \
+         --query "cluster.identity.oidc.issuer" \
+         --output text
+    3.2- Create the trust policy
+      - trust-policy.json file
+    3.3- Create the role in AWS
+     - aws iam create-role \
+       --role-name eks-irsa-secrets-reader \
+       --assume-role-policy-document file://trust-policy.json
+    3.4- Attach the policy we created before
+      - aws iam attach-role-policy \
+        --role-name eks-irsa-secrets-reader \
+        --policy-arn arn:aws:iam::<ACCOUNT_ID>:policy/eks-secretsmanager-readonly
+
+4- Create the ServiceAccount in Kubernetes
+      : service-account.yaml
+5- Attach the service account to your pods
+
+EKS:
+1- helm install external-secrets external-secrets/external-secrets --namespace external-secrets --create-namespace --set installCRDs=true
+2- aws eks describe-cluster --name example-cluster --region us-east-2 --query "cluster.identity.oidc.issuer" --output text
+     - output: https://oidc.eks.us-east-2.amazonaws.com/id/XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+3- kubectl get secret example-app-external-secret -n example-app -o json | ConvertFrom-Json | Select-Object -ExpandProperty data | ForEach-Object {
+    $_.PSObject.Properties | ForEach-Object {
+        $name = $_.Name
+        $value = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_.Value))
+        Write-Host "${name}: $value"
+    }
+}     

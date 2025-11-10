@@ -1,0 +1,8 @@
+apiVersion: v2
+name: my-new-app-00
+version: 0.1.0
+appVersion: "1.0.0"
+dependencies:
+  - name: chart-deploy-base
+    version: 0.0.1
+    repository: "file://../../.helm/chart-deploy-base"

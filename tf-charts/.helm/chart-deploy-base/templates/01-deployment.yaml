@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.deployment.name }}
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    {{- toYaml .Values.deployment.labels | nindent 4 }}
+  {{- if .Values.deployment.annotations }}
+  annotations:
+    {{- toYaml .Values.deployment.annotations | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: {{ .Values.deployment.replicas }}
+  revisionHistoryLimit: {{ .Values.deployment.revisionHistoryLimit | default 3 }}
+  progressDeadlineSeconds: {{ .Values.deployment.progressDeadlineSeconds | default 600 }}
+  minReadySeconds: {{ .Values.deployment.minReadySeconds | default 0 }}
+  {{- if .Values.deployment.enableStrategy }}
+  strategy:
+    {{- toYaml .Values.deployment.strategy | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- toYaml .Values.deployment.labels | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- toYaml .Values.deployment.labels | nindent 8 }}
+      {{- if .Values.deployment.podAnnotations }}
+      annotations:
+        {{- toYaml .Values.deployment.podAnnotations | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- if .Values.deployment.enablePodSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.deployment.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- if .Values.deployment.container.enableAffinity }}
+      affinity:
+        {{- toYaml .Values.deployment.container.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.deployment.nodeSelector }}
+      nodeSelector:
+        {{- toYaml .Values.deployment.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.deployment.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml .Values.deployment.topologySpreadConstraints | nindent 8 }}
+      {{- end }}
+      {{- if .Values.deployment.container.enableImagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml .Values.deployment.container.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      {{- if .Values.deployment.container.enableVolumes }}
+      volumes:
+        {{- toYaml .Values.deployment.container.volumes | nindent 8 }}
+      {{- end }}
+      {{- if .Values.deployment.serviceAccount.name }}
+      serviceAccountName: {{ .Values.deployment.serviceAccount.name }}
+      {{- end }}
+      {{- if .Values.deployment.initContainers }}
+      initContainers:
+        {{- toYaml .Values.deployment.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Values.deployment.container.name }}
+          image: "{{ .Values.deployment.container.image }}"
+          imagePullPolicy: {{ .Values.deployment.container.imagePullPolicy | default "IfNotPresent" }}
+          {{- if .Values.deployment.container.command }}
+          command:
+            {{- toYaml .Values.deployment.container.command | nindent 12 }}
+          {{- end }}
+          {{- if .Values.deployment.container.arguments }}
+          args:
+            {{- toYaml .Values.deployment.container.arguments | nindent 12 }}
+          {{- end }}
+          ports:
+            {{- toYaml .Values.deployment.container.ports | nindent 12 }}
+          envFrom:
+            {{- toYaml .Values.deployment.container.envFrom | nindent 12 }}
+          {{- if .Values.deployment.container.enableStaticEnv }}
+          env:
+            {{- toYaml .Values.deployment.container.env | nindent 12 }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.deployment.container.resources | nindent 12 }}
+          {{- if .Values.deployment.container.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.deployment.container.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.deployment.container.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.deployment.container.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if and .Values.deployment.container.startupProbe .Values.deployment.container.startupProbe.enable }}
+          startupProbe:
+            {{- omit .Values.deployment.container.startupProbe "enable" | toYaml | nindent 12 }}
+          {{- end }}
+          {{- if .Values.deployment.container.enableSecurityContext }}
+          securityContext:
+            {{- toYaml .Values.deployment.container.securityContext | nindent 12 }}
+          {{- end }}
+          {{- if .Values.deployment.container.enableVolumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.deployment.container.volumeMounts | nindent 12 }}
+          {{- end }}

@@ -1,0 +1,46 @@
+{{- if and .Values.virtualService .Values.virtualService.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ .Values.virtualService.name }}
+  namespace: {{ .Values.namespace.name }}
+  {{- with .Values.virtualService.labels }}
+  labels:
+{{ toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  hosts:
+    - {{ .Values.virtualService.host }}
+  gateways:
+    - {{ .Values.virtualService.gateway }}
+  http:
+    - match:
+        - uri:
+            prefix: {{ .Values.virtualService.uriPrefix }}
+        {{- if .Values.virtualService.method }}
+        - method:
+            exact: {{ .Values.virtualService.method }}
+        {{- end }}
+        {{- if .Values.virtualService.headerUser }}
+        - headers:
+            x-user:
+              exact: {{ .Values.virtualService.headerUser }}
+        {{- end }}
+        {{- if .Values.virtualService.queryVersion }}
+        - queryParams:
+            version:
+              exact: {{ .Values.virtualService.queryVersion }}
+        {{- end }}
+      route:
+        - destination:
+            host: {{ .Values.virtualService.destinationHost }}
+            port:
+              number: {{ .Values.virtualService.destinationPort }}
+      {{- if .Values.virtualService.timeout }}
+      timeout: {{ .Values.virtualService.timeout }}
+      {{- end }}
+      {{- with .Values.virtualService.retries }}
+      retries:
+{{ toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

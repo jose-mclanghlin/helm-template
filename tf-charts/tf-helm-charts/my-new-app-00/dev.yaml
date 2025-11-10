@@ -1,0 +1,137 @@
+chart-deploy-base:
+  # Namespace Configuration
+  namespace:
+    enabled: true
+    name: "example-app"
+    labels:
+      owner: "platform-team"
+      team: "engineering"
+
+  # ConfigMap Configuration
+  configMap:
+    enabled: true
+    name: "example-app-config-map"
+    annotations:
+      description: "Configuration for the Example Application service"
+    data:
+      DB_ENCRYPTATION_METHOD: "SSL"
+      ENVIRONMENT_TESTING: "true"
+      ENVIRONMENT_USE_ERP_VALUES: "false"
+      SERVER_PORT: "3014"
+      SPRING_APPLICATION_NAME: "ExampleApplication"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DDL_AUTO: "none"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: "org.hibernate.dialect.PostgreSQLDialect"
+      SPRING_JPA_SHOW-SQL: "false"
+      SPRING_PROFILES_ACTIVE: "dev"
+
+  # Service Configuration
+  service:
+    name: "example-app-service"
+    type: ClusterIP
+    port: 8082
+    targetPort: 8082
+    selector:
+      app: "example-app"
+
+  # Deployment Configuration
+  deployment:
+    name: "example-app-deployment"
+    replicas: 1
+    minReadySeconds: 0
+    revisionHistoryLimit: 3
+    progressDeadlineSeconds: 600
+    labels:
+      app: "example-app"
+    
+    # Disable unwanted defaults
+    enableStrategy: false
+    enablePodSecurityContext: false
+    serviceAccount: {enabled: false}
+    initContainers: []
+    podAnnotations: {}
+    nodeSelector: {}
+    
+    # Container Configuration
+    container:
+      name: "example-app-container"
+      image: your-registry.dkr.ecr.us-east-2.amazonaws.com/dev/example-app:latest
+      command: []
+      arguments: []
+      imagePullPolicy: IfNotPresent
+      ports:
+        - containerPort: 8082
+      envFrom:
+        - configMapRef:
+            name: "example-app-config-map"
+        - secretRef:
+            name: "example-app-external-secret"
+      resources:
+        limits:
+          cpu: "1000m"
+          memory: "1Gi"
+        requests:
+          cpu: "500m"
+          memory: "512Mi"
+      # Disable container defaults
+      enableStaticEnv: false
+      enableVolumesMounts: false
+      enableContainerSecurityContext: false
+      env: []
+      volumeMounts: []
+      livenessProbe: null
+      readinessProbe: null
+      startupProbe: null
+
+  # Ingress Configuration
+  ingress:
+    enabled: false
+    name: "example-app-ingress"
+    className: "nginx"
+    enableTLS: false
+    labels:
+      environment: "development"
+      team: "engineering"
+      owner: "platform-team"
+    annotations:
+      nginx.ingress.kubernetes.io/cors-allow-headers: "x-api-key,authorization,content-type"
+      nginx.ingress.kubernetes.io/enable-cors: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
+      nginx.ingress.kubernetes.io/proxy-connect-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+      nginx.ingress.kubernetes.io/ssl-redirect: "false"
+      nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+      nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    hosts:
+      - host: "dev-api.example.com"
+        paths:
+          - path: "/app"
+            pathType: "Prefix"
+            serviceName: "example-app-service"
+            servicePort: 8082
+          - path: "/api/app"
+            pathType: "Prefix"
+            servicePort: 8082
+          - path: "/health/app"
+            pathType: "Prefix"
+            servicePort: 8082
+    tls:
+      - hosts:
+          - "dev-api.example.com"
+  
+  # External Secret Configuration
+  externalSecret:
+    enabled: true
+    name: "example-app-external-secret"
+    namespace: "example-app"
+    labels:
+      app: "example-app"
+    secretStoreRef:
+      name: "aws-secrets"
+      kind: "SecretStore" # or "ClusterSecretStore"
+    data:
+      - secretKey: "CLIENT_BASE_URL"
+        remoteKey: "DEV_EXAMPLE_APP_CLIENT_BASE_URL"
+      
+      - secretKey: "CLIENT_SOAP_ACTION_CONVERT_SIGN"
+        remoteKey: "DEV_EXAMPLE_APP_CLIENT_SOAP_ACTION_CONVERT_SIGN"
